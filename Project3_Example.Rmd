@@ -1,0 +1,123 @@
+---
+title: "VEGFR2 Sequence Alignment"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+With the code below, I am reading in the fasta file that I used to run the BLAST search at https://blast.ncbi.nlm.nih.gov/Blast.cgi. 
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+_____________________________________________________________________________________
+
+Scientific Question: {2 points} How similar are the alternative splice variants of the vascular endothelial growth factor receptor 2 (VEGFR2) gene (complete cds)?
+
+VEGFR2 is a key gene involved in angiogenesis (Bowler 2019). There are a few known splice variants of VEGFR2. One splice variant, known as sVEGFR2, decreases lymphangiogenesis and downregulates neuroblastoma. Another splice variant, esVEGFR2, decreases lymphangiogenesis (Pavlakovic 2010). The VEGFR2 gene and splice variants were found here by performing a BLAST search on record EU826563.1 in the nucleotide collection (NR/NT) and only for the organisms Homo sapiens (taxis:9606). {3 points for description of background on the gene}
+_____________________________________________________________________________________
+Scientific Hypothesis: { 2 points } If there are multiple splice variants of the VEGFR2 gene, then the alternatively spliced splice variants are more likely to be similar to one another compared to the complete CDS mRNA. 
+
+Here we perform multiple sequence alignment, pairwise sequence alignment and use a heatmap to visualize the similarity of the pairwise sequence alignment. Multiple sequence alignment is done to print out the alignment so that we can visualize the results. Pairwise sequence alignment and heatmap analyses are done to rigorously answers the scientific question (and hypothesis). {3 points for description of work done to answer scientific question, and disprove/prove scientific hypothesis}
+_____________________________________________________________________________________
+Below, this bit of code is responsible for loading in all of the necessary packages. Here is where I will define the packages and what they are loaded in for {3 points for adequately describing the packages}:
+
+1) BioConductor
+2) DECIPHER: https://www.bioconductor.org/packages/release/bioc/vignettes/DECIPHER/inst/doc/ArtOfAlignmentInR.pdf
+3) Biostrings:
+
+Before running the code below, in the console I needed to install the packages using the commands:
+
+{2 points to write here what commands needed to be typed into the console to install the necessary packages}
+
+```{r}
+library(BiocManager)
+library(DECIPHER)
+library(Biostrings)
+
+# 3 points for loading all of the packages needed correctly
+```
+
+_____________________________________________________________________________________
+
+Below, this code is responsible for loading in a fasta file for the VEGFR2 that is associated with EU826563.1. This is just so that we can visualize the sequence in the R script. 
+```{r}
+fasta <- "VEGFR2_DNA.fasta"
+dna <- readDNAStringSet(fasta)
+dna
+```
+The above fasta file was searched at NCBI with a BLAST search. The top 6 hits were all Homo Sapien variants that were compared here. Information on how to analyze the results from the BLAST search can be found here: https://ftp.ncbi.nlm.nih.gov/pub/factsheets/HowTo_BLAST_NewResultPage.pdf
+_____________________________________________________________________________________
+
+Below we are reading in the BLAST results and the three CDS sequences for VEGFR2 mRNA from Homo sapiens. Two of these are alternatively spliced, one is not. { 3 points for description and accurate read in of data }
+
+```{r}
+Seq_Align <- "seqdump.txt"
+DNA_unaligned <- readDNAStringSet(Seq_Align)
+DNA_unaligned
+```
+In this next line of code, I will be performing the alignment and then viewing it as a DNA sequence as well as a protein sequence. Then I will write the sequences to a FASTA file that is aligned. The method used here is multiple sequence alignment {2 points here for adequately describing HOW multiple sequence alignment is done - this was not done here as this is a part of YOUR grade :D }
+
+```{r}
+VEGFR2_align <- AlignTranslation(DNA_aligned, type="AAStringSet") # Align the translation
+BrowseSeqs(VEGFR2_align, highlight = 1) # This allows you to view the alignment
+#DNA <- AlignSeqs(DNA_aligned) # align the sequences directly without translation
+DNA <- AlignTranslation(DNA_aligned) # Align the translation then reverse translate
+# write the aligned sequences to a FASTA file
+writeXStringSet(DNA, file="Aligned_VEGFR2_Seq.fasta")
+
+## {5 points for code working correctly & adequately commented}
+```
+```{r}
+# defining a vector that I can loop over shortly
+x <- c(1, 2, 3)
+
+# Creating an empty matrix and assigning it to the variable forheatmap
+forheatmap <- matrix(nrow=length(x), ncol=length(x))
+
+# A nested for loop to add values into the for heatmap matrix
+for (i in x) {
+  for (j in x){
+    # define the variables for each sequence from the sequence alignment
+    string1 <- DNA_unaligned[i]
+    string2 <- DNA_unaligned[j]
+    
+    # Turn the string1 variable into a character string
+    dsl = DNAStringSetList(string1)
+    as.character(unlist(dsl))
+    cl = as(dsl, "CharacterList")
+    as.list(cl)
+    
+    # Turn the string2 variable into a character string
+    dsl2 = DNAStringSetList(string2)
+    as.character(unlist(dsl2))
+    cl2 = as(dsl2, "CharacterList")
+    as.list(cl2)
+    
+    # Perform a pairwise sequence alignment for the two strings
+    pa2 <- pairwiseAlignment(pattern = c(cl2), subject = cl)
+    
+    # Assign the score from the pairwise sequence alignment to the matrix
+    forheatmap[i,j] <- score(pa2)
+  }
+}
+
+```
+
+{2 points for above code working for data analysis method}
+
+{2 points for adequately commenting the code}
+
+{3 points for description of the data analysis method}  
+
+
+```{r}
+# Print the values in the matrix forheatmap
+forheatmap
+
+# create a heatmap from the matrix that was filled by the for loop above. 
+heatmap(forheatmap)
+```
+
+Analysis of Results {3 points for correctly analyzing the data}: Sequence 3 is the original full CDS. Sequences 1 and 2 are the alternatively spliced genes of VEGFR2. Based on the heatmap above, sequences 1 and 2 are much more similar to one another than they are to sequence 3. Thus, my hypothesis was correct!
